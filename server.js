@@ -10,7 +10,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // --- Konfiguration ---
-const AUDIO_PARAMS = {
+const DEFAULT_AUDIO_PARAMS = {
     sampleRate: 48000,
     numChannels: 2,
     bitsPerSample: 16,
@@ -51,7 +51,7 @@ function writeWavHeader(filePath, params) {
     buffer.writeUInt32LE(0, 40); // Platzhalter Daten-Größe
 
     fs.writeFileSync(filePath, buffer);
-    console.log(`WAV Header geschrieben nach: ${filePath}`);
+    console.log(`WAV Header geschrieben nach: ${filePath} mit Parametern: `, params);
     return buffer.length;
 }
 
@@ -63,11 +63,23 @@ app.post('/upload-chunk', (req, res) => {
 
     try {
         if (!headerWritten) {
+            // Use query parameters for the first chunk if available, otherwise use defaults
+            const querySampleRate = req.query.sampleRate ? parseInt(req.query.sampleRate, 10) : DEFAULT_AUDIO_PARAMS.sampleRate;
+            const queryNumChannels = req.query.numChannels ? parseInt(req.query.numChannels, 10) : DEFAULT_AUDIO_PARAMS.numChannels;
+            const queryBitsPerSample = req.query.bitsPerSample ? parseInt(req.query.bitsPerSample, 10) : DEFAULT_AUDIO_PARAMS.bitsPerSample;
+
+            const currentAudioParams = {
+                sampleRate: querySampleRate,
+                numChannels: queryNumChannels,
+                bitsPerSample: queryBitsPerSample,
+            };
+
             if (fs.existsSync(TEMP_AUDIO_FILE)) {
                 fs.unlinkSync(TEMP_AUDIO_FILE);
-                console.log('Alte temporäre Datei gelöscht.');
+                console.log('Alte temporäre Datei gelöscht vor Header-Schreiben.');
             }
-            writeWavHeader(TEMP_AUDIO_FILE, AUDIO_PARAMS);
+            // Use currentAudioParams (potentially from query) to write the header
+            writeWavHeader(TEMP_AUDIO_FILE, currentAudioParams);
             totalDataBytesWritten = 0;
             headerWritten = true;
         }
