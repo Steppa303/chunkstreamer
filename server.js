@@ -139,10 +139,12 @@ app.get('/stream', (req, res) => {
         res.writeHead(206, head);
         file.pipe(res);
     } else {
+        // Für initiale Anfragen (ohne Range-Header) Content-Length weglassen,
+        // damit Transfer-Encoding: chunked verwendet wird.
         const head = {
-            'Content-Length': fileSize,
+            // 'Content-Length': fileSize, // Entfernt!
             'Content-Type': 'audio/wav',
-            'Accept-Ranges': 'bytes',
+            'Accept-Ranges': 'bytes', // Wichtig, um anzuzeigen, dass Range-Requests unterstützt werden
             'Cache-Control': 'no-cache, no-store, must-revalidate',
             'Pragma': 'no-cache',
             'Expires': '0'
