@@ -1,3 +1,4 @@
+
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -35,23 +36,24 @@ function writeWavHeader(filePath, params) {
     const buffer = Buffer.alloc(44);
     const byteRate = params.sampleRate * params.numChannels * (params.bitsPerSample / 8);
     const blockAlign = params.numChannels * (params.bitsPerSample / 8);
+    const MAX_UINT32 = 0xFFFFFFFF; // Use a very large value for unknown size
 
     buffer.write('RIFF', 0);
-    buffer.writeUInt32LE(0, 4); // Platzhalter Dateigröße - 8
+    buffer.writeUInt32LE(MAX_UINT32, 4); // FileSize - 8 (unknown, so max)
     buffer.write('WAVE', 8);
     buffer.write('fmt ', 12);
-    buffer.writeUInt32LE(16, 16); // Sub-chunk Größe
-    buffer.writeUInt16LE(1, 20);  // Audio Format (PCM)
+    buffer.writeUInt32LE(16, 16); // Sub-chunk 1 Size (PCM = 16)
+    buffer.writeUInt16LE(1, 20);  // Audio Format (PCM = 1)
     buffer.writeUInt16LE(params.numChannels, 22);
     buffer.writeUInt32LE(params.sampleRate, 24);
     buffer.writeUInt32LE(byteRate, 28);
     buffer.writeUInt16LE(blockAlign, 32);
     buffer.writeUInt16LE(params.bitsPerSample, 34);
     buffer.write('data', 36);
-    buffer.writeUInt32LE(0, 40); // Platzhalter Daten-Größe
+    buffer.writeUInt32LE(MAX_UINT32, 40); // Sub-chunk 2 Size (data size, unknown, so max)
 
     fs.writeFileSync(filePath, buffer);
-    console.log(`WAV Header geschrieben nach: ${filePath} mit Parametern: `, params);
+    console.log(`WAV Header (streaming-style) geschrieben nach: ${filePath} mit Parametern: `, params);
     return buffer.length;
 }
 
